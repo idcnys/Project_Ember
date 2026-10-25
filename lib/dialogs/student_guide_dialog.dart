@@ -123,13 +123,23 @@ class StudentGuideDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     NotionTheme.callout(
-                      icon: LucideIcons.rocket,
-                      title: "6. INTERPLANETARY SPACE SHUTTLE FLIGHT",
+                      icon: LucideIcons.layers,
+                      title: "6. THE SIX-FIELD MISSION MEMORY SYSTEM",
                       message:
-                          "Pilot the Space Shuttle Orbiter through the Solar System! Engage the throttle, toggle Warp Boost for fast interplanetary cruise, and use Celestial Autopilot to navigate directly to Sun, Earth, Moon, Mars, Ceres, and Jupiter.",
-                      accentColor: NotionTheme.pastelTeal,
-                      bgColor: NotionTheme.pastelTealBg,
+                          "Every campaign level stores six core memory fields: (1) Mission Science: core questions; (2) Outcomes: real empirical measurements; (3) Why Ended: planned impact, power limits, or mission completion; (4) Contribution: impact on later science; (5) Device Technology: sensors, optics, and propulsion; (6) Chief Guidelines: operational decision rules. Reconstructing these fields unlocks mastery stars.",
+                      accentColor: NotionTheme.pastelAmber,
+                      bgColor: NotionTheme.pastelAmberBg,
                     ),
+                    const SizedBox(height: 8),
+                    NotionTheme.callout(
+                      icon: LucideIcons.award,
+                      title: "7. SCIENTIFIC EVIDENCE RUBRIC (10-POINT CASE SCORE)",
+                      message:
+                          "Good science distrusts single-sensor readings and refuses to claim what the evidence cannot prove. Score 10 points per case: 2 pts (identify anomaly) + 3 pts (connect 2+ clues) + 2 pts (reject unsupported claims) + 2 pts (suggest verification test) + 1 pt (honestly acknowledge uncertainty). Ranks: 0–3 Signal Lost, 4–6 Junior Analyst, 7–8 Field Investigator, 9–10 Mission Detective.",
+                      accentColor: NotionTheme.pastelPurple,
+                      bgColor: NotionTheme.pastelPurpleBg,
+                    ),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),

@@ -10,6 +10,10 @@ class VaultService extends ChangeNotifier {
   static const String _keySoundMuted = "mohasunno_sound_muted";
   static const String _keyHapticEnabled = "mohasunno_haptic_enabled";
   static const String _keyVolume = "mohasunno_volume";
+  static const String _keySfxVolume = "mohasunno_sfx_volume";
+  static const String _keyBgmVolume = "mohasunno_bgm_volume";
+  static const String _keyBgmEnabled = "mohasunno_bgm_enabled";
+  static const String _keyBgmTrack = "mohasunno_bgm_track";
   static const String _keyCompletedLevels = "mohasunno_completed_levels";
   static const String _keyLevelStars = "mohasunno_level_stars";
   static const String _keyActiveLevelId = "mohasunno_active_level_id";
@@ -25,7 +29,11 @@ class VaultService extends ChangeNotifier {
   bool _hasCompletedOnboarding = false;
   bool _isSoundMuted = false;
   bool _isHapticEnabled = true;
-  double _volume = 0.8;
+  bool _isBgmEnabled = true;
+  String _bgmTrack = AudioService.trackAmbient;
+  double _sfxVolume = 0.5; // 50% default
+  double _bgmVolume = 0.4; // 40% default
+  double _volume = 0.5;
   bool _isLoaded = false;
 
   List<MissionData> get missions => _missions;
@@ -36,7 +44,11 @@ class VaultService extends ChangeNotifier {
   bool get hasCompletedOnboarding => _hasCompletedOnboarding;
   bool get isSoundMuted => _isSoundMuted;
   bool get isHapticEnabled => _isHapticEnabled;
-  double get volume => _volume;
+  bool get isBgmEnabled => _isBgmEnabled;
+  String get bgmTrack => _bgmTrack;
+  double get sfxVolume => _sfxVolume;
+  double get bgmVolume => _bgmVolume;
+  double get volume => _sfxVolume;
   bool get isLoaded => _isLoaded;
 
   MissionData get currentMission {
@@ -97,9 +109,17 @@ class VaultService extends ChangeNotifier {
       _hasCompletedOnboarding = prefs.getBool(_keyHasCompletedOnboarding) ?? false;
       _isSoundMuted = prefs.getBool(_keySoundMuted) ?? false;
       _isHapticEnabled = prefs.getBool(_keyHapticEnabled) ?? true;
-      _volume = prefs.getDouble(_keyVolume) ?? 0.8;
+      _sfxVolume = prefs.getDouble(_keySfxVolume) ?? prefs.getDouble(_keyVolume) ?? 0.5;
+      _bgmVolume = prefs.getDouble(_keyBgmVolume) ?? 0.4;
+      _isBgmEnabled = prefs.getBool(_keyBgmEnabled) ?? true;
+      _bgmTrack = prefs.getString(_keyBgmTrack) ?? AudioService.trackAmbient;
+      _volume = _sfxVolume;
 
-      AudioService.isMuted = _isSoundMuted;
+      AudioService.sfxVolume = _sfxVolume;
+      AudioService.bgmVolume = _bgmVolume;
+      AudioService.isBgmEnabled = _isBgmEnabled;
+      AudioService.currentTrack = _bgmTrack;
+      AudioService.updateMuted(_isSoundMuted);
       AudioService.isHapticEnabled = _isHapticEnabled;
 
       // Restore clue state
@@ -226,14 +246,14 @@ class VaultService extends ChangeNotifier {
 
   void toggleSound() {
     _isSoundMuted = !_isSoundMuted;
-    AudioService.isMuted = _isSoundMuted;
+    AudioService.updateMuted(_isSoundMuted);
     _saveState();
     notifyListeners();
   }
 
   void setSoundMuted(bool muted) {
     _isSoundMuted = muted;
-    AudioService.isMuted = _isSoundMuted;
+    AudioService.updateMuted(_isSoundMuted);
     _saveState();
     notifyListeners();
   }
@@ -245,10 +265,37 @@ class VaultService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setVolume(double val) {
-    _volume = val;
+  void setSfxVolume(double val) {
+    _sfxVolume = val.clamp(0.0, 1.0);
+    _volume = _sfxVolume;
+    AudioService.setSfxVolume(_sfxVolume);
     _saveState();
     notifyListeners();
+  }
+
+  void setBgmVolume(double val) {
+    _bgmVolume = val.clamp(0.0, 1.0);
+    AudioService.setBgmVolume(_bgmVolume);
+    _saveState();
+    notifyListeners();
+  }
+
+  void setBgmEnabled(bool enabled) {
+    _isBgmEnabled = enabled;
+    AudioService.setBgmEnabled(enabled);
+    _saveState();
+    notifyListeners();
+  }
+
+  void setBgmTrack(String track) {
+    _bgmTrack = track;
+    AudioService.setBgmTrack(track);
+    _saveState();
+    notifyListeners();
+  }
+
+  void setVolume(double val) {
+    setSfxVolume(val);
   }
 
   Future<void> resetProgress() async {
@@ -302,6 +349,10 @@ class VaultService extends ChangeNotifier {
       await prefs.setBool(_keyHasCompletedOnboarding, _hasCompletedOnboarding);
       await prefs.setBool(_keySoundMuted, _isSoundMuted);
       await prefs.setBool(_keyHapticEnabled, _isHapticEnabled);
+      await prefs.setDouble(_keySfxVolume, _sfxVolume);
+      await prefs.setDouble(_keyBgmVolume, _bgmVolume);
+      await prefs.setBool(_keyBgmEnabled, _isBgmEnabled);
+      await prefs.setString(_keyBgmTrack, _bgmTrack);
       await prefs.setDouble(_keyVolume, _volume);
     } catch (e) {
       debugPrint("Vault save error: $e");

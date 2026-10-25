@@ -9,8 +9,8 @@ import 'screens/world_select_screen.dart';
 import 'screens/level_select_screen.dart';
 import 'game_2d/exploration_game.dart';
 import 'space/space_mission_view.dart';
-import 'shuttle/shuttle_flight_view.dart';
 import 'dialogs/ember_onboarding_dialog.dart';
+import 'screens/model_museum_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -68,7 +68,7 @@ enum GameState {
   levelSelect,
   exploration2D,
   spaceMission3D,
-  shuttleFlight,
+  modelMuseum,
 }
 
 class GameRootScreen extends StatefulWidget {
@@ -86,10 +86,14 @@ class _GameRootScreenState extends State<GameRootScreen> {
   CampaignWorld? _selectedWorld;
   CampaignLevel? _selectedLevel;
   bool _showOnboarding = false;
+  bool _isFromModelMuseum = false;
 
   @override
   void initState() {
     super.initState();
+    // Start ambient background music in loop with 40% volume by default
+    AudioService.startBgm();
+
     if (!widget.vault.hasCompletedOnboarding) {
       _showOnboarding = true;
     }
@@ -100,6 +104,7 @@ class _GameRootScreenState extends State<GameRootScreen> {
     setState(() {
       _gameState = GameState.mainMenu;
       _selectedLevel = null;
+      _isFromModelMuseum = false;
     });
   }
 
@@ -108,6 +113,7 @@ class _GameRootScreenState extends State<GameRootScreen> {
     setState(() {
       _gameState = GameState.worldSelect;
       _selectedLevel = null;
+      _isFromModelMuseum = false;
     });
   }
 
@@ -117,13 +123,43 @@ class _GameRootScreenState extends State<GameRootScreen> {
       _selectedWorld = world;
       _gameState = GameState.levelSelect;
       _selectedLevel = null;
+      _isFromModelMuseum = false;
+    });
+  }
+
+  void _switchToModelMuseum() {
+    AudioService.playClick();
+    setState(() {
+      _gameState = GameState.modelMuseum;
+      _selectedLevel = null;
+      _isFromModelMuseum = false;
+    });
+  }
+
+  void _launchLevelFromMuseum(CampaignLevel level) {
+    widget.vault.setActiveLevel(level.id);
+    AudioService.playSuccess();
+    setState(() {
+      _selectedLevel = level;
+      _selectedWorld = widget.vault.worlds.firstWhere(
+        (w) => w.levels.any((l) => l.id == level.id),
+        orElse: () => widget.vault.worlds.first,
+      );
+      _isFromModelMuseum = true;
+      _gameState = GameState.spaceMission3D;
     });
   }
 
   void _launchLevel(CampaignLevel level) {
+    widget.vault.setActiveLevel(level.id);
     AudioService.playSuccess();
     setState(() {
       _selectedLevel = level;
+      _selectedWorld = widget.vault.worlds.firstWhere(
+        (w) => w.levels.any((l) => l.id == level.id),
+        orElse: () => widget.vault.worlds.first,
+      );
+      _isFromModelMuseum = false;
       _gameState = GameState.spaceMission3D;
     });
   }
@@ -132,6 +168,7 @@ class _GameRootScreenState extends State<GameRootScreen> {
     AudioService.playSuccess();
     setState(() {
       _selectedLevel = null;
+      _isFromModelMuseum = false;
       _gameState = GameState.exploration2D;
     });
   }
@@ -140,15 +177,8 @@ class _GameRootScreenState extends State<GameRootScreen> {
     AudioService.playSuccess();
     setState(() {
       _selectedLevel = null;
+      _isFromModelMuseum = false;
       _gameState = GameState.spaceMission3D;
-    });
-  }
-
-  void _switchToShuttleFlight() {
-    AudioService.playSuccess();
-    setState(() {
-      _selectedLevel = null;
-      _gameState = GameState.shuttleFlight;
     });
   }
 
@@ -197,8 +227,17 @@ class _GameRootScreenState extends State<GameRootScreen> {
           onStartGame: _switchToExploration,
           onOpenWorldSelect: _switchToWorldSelect,
           onOpenSpaceMissions: _switchToSpaceMission,
-          onOpenShuttleFlight: _switchToShuttleFlight,
+          onOpenModelMuseum: _switchToModelMuseum,
+          onContinueLevel: (level) => _launchLevel(level),
           onOpenOnboarding: () => setState(() => _showOnboarding = true),
+        );
+
+      case GameState.modelMuseum:
+        return ModelMuseumScreen(
+          key: const ValueKey('model_museum_screen'),
+          vault: widget.vault,
+          onSelectModel: _launchLevelFromMuseum,
+          onReturnToMenu: _switchToMainMenu,
         );
 
       case GameState.worldSelect:
@@ -232,19 +271,15 @@ class _GameRootScreenState extends State<GameRootScreen> {
           vault: widget.vault,
           campaignLevel: _selectedLevel,
           onReturnToArchive: () {
-            if (_selectedLevel != null && _selectedWorld != null) {
+            if (_isFromModelMuseum) {
+              _switchToModelMuseum();
+            } else if (_selectedLevel != null && _selectedWorld != null) {
               _switchToLevelSelect(_selectedWorld!);
             } else {
               _switchToMainMenu();
             }
           },
           onReturnToMenu: _switchToMainMenu,
-        );
-
-      case GameState.shuttleFlight:
-        return ShuttleFlightView(
-          key: const ValueKey('shuttle_flight_screen'),
-          onExitFlight: _switchToMainMenu,
         );
     }
   }

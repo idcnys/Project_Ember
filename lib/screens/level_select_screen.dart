@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../models/campaign_data.dart';
+import '../models/space_detective_data.dart';
 import '../services/vault_service.dart';
 import '../services/audio_service.dart';
 import '../theme/notion_theme.dart';
@@ -470,6 +471,7 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> {
 
   Widget _buildBriefingPanel(CampaignLevel level) {
     final themeColor = widget.world.themeColor;
+    final detectiveCase = SpaceDetectiveCatalog.getCaseByCode(level.code);
 
     return Container(
       decoration: BoxDecoration(
@@ -653,7 +655,22 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> {
               ),
               const SizedBox(height: 10),
 
-              // 4. Historical Investigation Log
+              // 4. Mission Control Incident Briefing (from Space Detective Guide)
+              if (detectiveCase != null) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: NotionTheme.callout(
+                    icon: LucideIcons.radio,
+                    title: "MISSION CONTROL INCIDENT BRIEFING // ${detectiveCase.scenario.toUpperCase()}",
+                    message: detectiveCase.briefing,
+                    accentColor: themeColor,
+                    bgColor: themeColor.withValues(alpha: 0.12),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+
+              // 5. Historical Investigation Log
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 child: NotionTheme.callout(
@@ -666,7 +683,7 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> {
               ),
               const SizedBox(height: 8),
 
-              // 5. Telemetry Reconstruction Directive
+              // 6. Telemetry Reconstruction Directive
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 child: NotionTheme.callout(

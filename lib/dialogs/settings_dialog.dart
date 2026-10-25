@@ -21,14 +21,20 @@ class SettingsDialog extends StatefulWidget {
 class _SettingsDialogState extends State<SettingsDialog> {
   late bool _soundMuted;
   late bool _hapticEnabled;
-  late double _volume;
+  late bool _bgmEnabled;
+  late String _bgmTrack;
+  late double _sfxVolume;
+  late double _bgmVolume;
 
   @override
   void initState() {
     super.initState();
     _soundMuted = widget.vault.isSoundMuted;
     _hapticEnabled = widget.vault.isHapticEnabled;
-    _volume = widget.vault.volume;
+    _bgmEnabled = widget.vault.isBgmEnabled;
+    _bgmTrack = widget.vault.bgmTrack;
+    _sfxVolume = widget.vault.sfxVolume;
+    _bgmVolume = widget.vault.bgmVolume;
   }
 
   void _showResetConfirm() {
@@ -160,8 +166,8 @@ class _SettingsDialogState extends State<SettingsDialog> {
               // Setting: Sound FX Toggle
               _buildSwitchRow(
                 icon: _soundMuted ? LucideIcons.volumeX : LucideIcons.volume2,
-                title: "Sound Effects & Synthesizer",
-                subtitle: "Tactile audio feedback for buttons, terminal, and engines",
+                title: "Sound & Music Master",
+                subtitle: "Tactile audio feedback, telemetry tones & ambient cosmic BGM",
                 value: !_soundMuted,
                 onChanged: (val) {
                   setState(() => _soundMuted = !val);
@@ -170,17 +176,17 @@ class _SettingsDialogState extends State<SettingsDialog> {
               ),
               const SizedBox(height: 12),
 
-              // Setting: Volume Slider
+              // Setting: SFX Volume Slider (50% Default)
               Row(
                 children: [
-                  const Icon(LucideIcons.sliders, color: NotionTheme.textSecondary, size: 18),
+                  const Icon(LucideIcons.volume2, color: NotionTheme.textSecondary, size: 18),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Audio Volume: ${(_volume * 100).round()}%",
+                          "Sound Effects (SFX): ${(_sfxVolume * 100).round()}%",
                           style: const TextStyle(
                             color: NotionTheme.textPrimary,
                             fontSize: 11,
@@ -196,12 +202,12 @@ class _SettingsDialogState extends State<SettingsDialog> {
                             thumbColor: NotionTheme.pastelBlue,
                           ),
                           child: Slider(
-                            value: _volume,
+                            value: _sfxVolume,
                             min: 0.0,
                             max: 1.0,
                             onChanged: (val) {
-                              setState(() => _volume = val);
-                              widget.vault.setVolume(val);
+                              setState(() => _sfxVolume = val);
+                              widget.vault.setSfxVolume(val);
                             },
                           ),
                         ),
@@ -210,7 +216,108 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
+
+              // Setting: BGM On/Off Toggle
+              _buildSwitchRow(
+                icon: _bgmEnabled ? LucideIcons.music : LucideIcons.volumeX,
+                title: "Background Music (BGM)",
+                subtitle: "Looping sci-fi atmosphere & detective soundtracks",
+                value: _bgmEnabled,
+                onChanged: (val) {
+                  setState(() => _bgmEnabled = val);
+                  widget.vault.setBgmEnabled(val);
+                },
+              ),
+              const SizedBox(height: 10),
+
+              if (_bgmEnabled) ...[
+                // Setting: BGM Volume Slider (40% Default)
+                Row(
+                  children: [
+                    const Icon(LucideIcons.volume1, color: NotionTheme.pastelPurple, size: 18),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "BGM Music Volume: ${(_bgmVolume * 100).round()}%",
+                            style: const TextStyle(
+                              color: NotionTheme.textPrimary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              trackHeight: 2,
+                              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                              activeTrackColor: NotionTheme.pastelPurple,
+                              inactiveTrackColor: NotionTheme.surfaceElevated,
+                              thumbColor: NotionTheme.pastelPurple,
+                            ),
+                            child: Slider(
+                              value: _bgmVolume,
+                              min: 0.0,
+                              max: 1.0,
+                              onChanged: (val) {
+                                setState(() => _bgmVolume = val);
+                                widget.vault.setBgmVolume(val);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // BGM Track Selection Cards
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(left: 30, bottom: 6),
+                      child: Text(
+                        "SOUNDTRACK SELECTOR",
+                        style: TextStyle(
+                          color: NotionTheme.textTertiary,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 30),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _buildTrackOption(
+                              title: "Space Ambient",
+                              subtitle: "Deep sci-fi tone",
+                              trackFile: AudioService.trackAmbient,
+                              icon: LucideIcons.disc,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildTrackOption(
+                              title: "Detective Theme",
+                              subtitle: "Mystery noir mood",
+                              trackFile: AudioService.trackDetective,
+                              icon: LucideIcons.search,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ],
 
               // Setting: Haptic Vibrations
               _buildSwitchRow(
@@ -349,6 +456,71 @@ class _SettingsDialogState extends State<SettingsDialog> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTrackOption({
+    required String title,
+    required String subtitle,
+    required String trackFile,
+    required IconData icon,
+  }) {
+    final bool isSelected = _bgmTrack == trackFile;
+    return InkWell(
+      onTap: () {
+        AudioService.playClick();
+        setState(() => _bgmTrack = trackFile);
+        widget.vault.setBgmTrack(trackFile);
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? NotionTheme.pastelPurpleBg : NotionTheme.surfaceElevated,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? NotionTheme.pastelPurple : NotionTheme.borderMuted,
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: isSelected ? NotionTheme.pastelPurple : NotionTheme.textSecondary,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: isSelected ? NotionTheme.pastelPurple : NotionTheme.textPrimary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: NotionTheme.textTertiary,
+                      fontSize: 9,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(LucideIcons.check, size: 14, color: NotionTheme.pastelPurple),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -7,6 +7,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 
 import '../models/campaign_data.dart';
+import '../models/space_detective_data.dart';
+import 'space_detective_dossier_panel.dart';
+
 import '../services/vault_service.dart';
 import '../services/audio_service.dart';
 import '../puzzles/puzzles_modal.dart';
@@ -14,7 +17,6 @@ import '../dialogs/vault_dialog.dart';
 import '../dialogs/solar_system_map_dialog.dart';
 import '../dialogs/nasa_timeline_dialog.dart';
 import '../dialogs/student_guide_dialog.dart';
-import '../shuttle/shuttle_flight_view.dart';
 import '../theme/notion_theme.dart';
 
 class SpaceMissionView extends StatefulWidget {
@@ -41,6 +43,7 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
 
   // 3D Model Viewer Controls
   bool _autoRotate = true;
+  bool _isDossierOpen = true;
   Key _modelViewerKey = UniqueKey();
   final TransformationController _imageTransformController = TransformationController();
 
@@ -65,14 +68,19 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
   bool _showSolarMap = false;
   bool _showTimeline = false;
   bool _showStudentGuide = false;
-  bool _showShuttleFlight = false;
-
-  // Hotspot Inspection Modal
-  Map<String, String>? _inspectedHotspot;
 
   // Victory Dialog State
   bool _showVictoryDialog = false;
+  bool _showWorldCompleteDialog = false;
   String _victoryMessage = "";
+
+  // Space Detective Lifecycle & Subsystem State
+  bool _isSubsystemDiagnosed = false;
+  bool _isVerdictSubmitted = false;
+  int _verdictScore = 0;
+  int _verdictStars = 0;
+  String _verdictRank = "";
+  int _dossierTab = 0;
 
   // Mission Mischief State
   int _mischiefIndex = 0;
@@ -86,7 +94,7 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
     },
     {
       "tag": "TACTICAL TIP",
-      "text": "Tap 'Investigate Subsystem' or the glowing reticles to solve the calibration cipher!",
+      "text": "Tap 'Investigate Subsystem' or the Story Dossier to solve the calibration cipher!",
       "color": "0xFF22C55E",
     },
     {
@@ -104,6 +112,20 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
   @override
   void initState() {
     super.initState();
+    if (widget.campaignLevel != null) {
+      widget.vault.setActiveLevel(widget.campaignLevel!.id);
+    }
+    final isAlreadyCompleted = widget.campaignLevel?.isCompleted ?? false;
+    _isSubsystemDiagnosed = isAlreadyCompleted;
+    _isVerdictSubmitted = isAlreadyCompleted;
+    if (isAlreadyCompleted) {
+      _verdictStars = widget.campaignLevel?.stars ?? 3;
+      _verdictScore = _verdictStars == 3 ? 10 : (_verdictStars == 2 ? 8 : 6);
+      _verdictRank = _verdictStars == 3
+          ? "MISSION DETECTIVE"
+          : (_verdictStars == 2 ? "FIELD INVESTIGATOR" : "JUNIOR ANALYST");
+    }
+
     _ticker = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat();
 
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -156,16 +178,72 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
   void _openPuzzle(String type) {
     AudioService.playCardSelect();
     setState(() {
-      _inspectedHotspot = null;
       _activePuzzleType = type;
     });
   }
 
   void _onPuzzleSolved(List<String> clueIds, String message) {
     widget.vault.unlockClues(clueIds);
+
+    setState(() {
+      _activePuzzleType = null;
+      _isSubsystemDiagnosed = true;
+      _isDossierOpen = true; // Automatically open Story Dossier beside the viewer
+      _dossierTab = 3; // Focus directly on the Verdict & Debrief tab
+      _victoryMessage = message;
+    });
+
+    AudioService.playSuccess();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF0F172A),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: Color(0xFF22C55E), width: 1.2),
+        ),
+        duration: const Duration(seconds: 4),
+        content: Row(
+          children: [
+            const Icon(LucideIcons.checkCircle2, color: Color(0xFF22C55E), size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "SUBSYSTEM DIAGNOSED // EVIDENCE UNLOCKED",
+                    style: TextStyle(
+                      color: Color(0xFF22C55E),
+                      fontFamily: NotionTheme.pixelFont,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    message.isNotEmpty
+                        ? message
+                        : "Diagnostic telemetry decoded. Proceed to Case Verdict & Debrief to conclude the mission.",
+                    style: const TextStyle(color: Colors.white70, fontSize: 10),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _onVerdictSolved(int score, int stars, [String rank = ""]) {
     bool allWorldLevelsCompleted = false;
     if (widget.campaignLevel != null) {
-      widget.vault.completeCampaignLevel(widget.campaignLevel!.id, 3);
+      widget.vault.completeCampaignLevel(widget.campaignLevel!.id, stars);
       final currentWorld = widget.vault.worlds.cast<CampaignWorld?>().firstWhere(
         (w) => w?.levels.any((l) => l.id == widget.campaignLevel!.id) ?? false,
         orElse: () => null,
@@ -182,9 +260,14 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
     }
 
     setState(() {
-      _activePuzzleType = null;
+      _isVerdictSubmitted = true;
+      _verdictScore = score;
+      _verdictStars = stars;
+      _verdictRank = rank.isNotEmpty
+          ? rank
+          : (stars == 3 ? "MISSION DETECTIVE" : (stars == 2 ? "FIELD INVESTIGATOR" : "JUNIOR ANALYST"));
+      _showWorldCompleteDialog = allWorldLevelsCompleted;
       _showVictoryDialog = true;
-      _victoryMessage = message;
     });
   }
 
@@ -212,15 +295,24 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
   Widget build(BuildContext context) {
     final mission = widget.vault.currentMission;
     final missionTitle = widget.campaignLevel?.title ?? mission.title;
-    final missionEra = widget.campaignLevel != null
-        ? "${widget.campaignLevel!.code} // ${widget.campaignLevel!.subsystem}"
-        : mission.era.toUpperCase();
     final hardware = widget.campaignLevel?.spacecraft ?? mission.hardware;
     final objective = widget.campaignLevel?.objective ?? mission.objective;
     final modelName = widget.campaignLevel?.modelName ?? mission.modelName;
     final glbPath = widget.campaignLevel?.glbModelPath ?? _resolveGlbModelPath(modelName);
     final puzzleType = widget.campaignLevel?.puzzleType ?? "signal";
     final hardwareImage = widget.campaignLevel?.hardwareImagePath;
+
+    final String levelCode = widget.campaignLevel?.code ?? "M1";
+    final SpaceDetectiveCase detectiveCase = SpaceDetectiveCatalog.getCaseByCode(levelCode) ??
+        SpaceDetectiveCatalog.getCaseByLevelId(widget.campaignLevel?.id ?? "") ??
+        SpaceDetectiveCatalog.allCases.first;
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWide = screenWidth >= 920;
+    final dossierWidth = isWide
+        ? (screenWidth * 0.38).clamp(380.0, 480.0)
+        : (screenWidth * 0.90).clamp(320.0, 440.0);
+    final viewerRightBound = (isWide && _isDossierOpen) ? dossierWidth + 12 : 0.0;
 
     return PopScope(
       canPop: false,
@@ -257,7 +349,15 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
               ),
             ),
 
-            // 2. Center 3D Model Viewer OR Archival Photographic Viewer
+            // 2. Main Spacecraft / Hardware Viewer Bay (Sits beside Story Dossier)
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              right: viewerRightBound,
+              child: Stack(
+                children: [
+                  // 2. Center 3D Model Viewer OR Archival Photographic Viewer
             Positioned.fill(
               child: hardwareImage != null
                   ? _buildArchivalImageViewer(hardwareImage, hardware)
@@ -288,9 +388,6 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
                           ),
                         )),
             ),
-
-            // 3. Interactive Subsystem Hotspots on Spacecraft
-            ..._buildHotspots(puzzleType, hardware),
 
             // 4. Floating Viewport Controls (Bottom-Center)
             Positioned(
@@ -478,6 +575,126 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
               ),
             ),
 
+                  // Top-Left: Companion Tip Icon & Expandable Tip Pill
+            Positioned(
+              top: 58,
+              left: 14,
+              child: SafeArea(
+                top: false,
+                right: false,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Tip Icon Button
+                    GestureDetector(
+                      onTap: () {
+                        if (_mischiefExpanded) {
+                          _cycleMischief();
+                        } else {
+                          setState(() => _mischiefExpanded = true);
+                          AudioService.playClick();
+                        }
+                      },
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: const Color(0xEE090F1D),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF38BDF8).withValues(alpha: 0.8),
+                            width: 1.2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF38BDF8).withValues(alpha: 0.3),
+                              blurRadius: 8,
+                            )
+                          ],
+                        ),
+                        child: const Icon(LucideIcons.sparkles, color: Color(0xFF38BDF8), size: 15),
+                      ),
+                    ),
+
+                    // Companion Tip Pill
+                    if (_mischiefExpanded) ...[
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: _cycleMischief,
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 260),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: const Color(0xF50B111E),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Color(int.parse(_mischiefMessages[_mischiefIndex]["color"]!)),
+                              width: 1.0,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.6),
+                                blurRadius: 10,
+                              )
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    _mischiefMessages[_mischiefIndex]["tag"]!,
+                                    style: TextStyle(
+                                      color: Color(int.parse(_mischiefMessages[_mischiefIndex]["color"]!)),
+                                      fontFamily: NotionTheme.pixelFont,
+                                      fontSize: 7.5,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  GestureDetector(
+                                    onTap: () => setState(() => _mischiefExpanded = false),
+                                    child: const Icon(LucideIcons.x, color: Colors.white38, size: 12),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                _mischiefMessages[_mischiefIndex]["text"]!,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  height: 1.25,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+
+            // Bottom-Right: Primary Action Button (Obeys Story Dossier Debrief Lifecycle)
+            Positioned(
+              right: 14,
+              bottom: 12,
+              child: SafeArea(
+                top: false,
+                left: false,
+                child: _buildBottomRightActionButton(detectiveCase, puzzleType),
+              ),
+            ),                ],
+              ),
+            ),
+
             // 5. Top Tactical HUD Bar
             Positioned(
               top: 0,
@@ -529,47 +746,82 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
                           const SizedBox(width: 8),
                         ],
 
-                        // Hardware Badge Pill
-                        Flexible(
-                          flex: 3,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF38BDF8),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Tooltip(
-                              message: "$hardware // $missionTitle",
-                              child: Text(
+                        // Hardware Badge, Title & Brief Objective (Docked in Top HUD with zero viewer overlap)
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
                                 "${hardware.toUpperCase()} // ${missionTitle.toUpperCase()}",
-                                style: TextStyle(
-                                  color: Colors.black,
+                                style: const TextStyle(
+                                  color: Color(0xFF38BDF8),
                                   fontWeight: FontWeight.w900,
-                                  fontSize: 9.5,
-                                  letterSpacing: 0.6,
+                                  fontSize: 9,
+                                  letterSpacing: 0.5,
                                   fontFamily: NotionTheme.pixelFont,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                            ),
+                              const SizedBox(height: 1),
+                              Text(
+                                objective,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  fontSize: 8.5,
+                                  fontFamily: NotionTheme.fontFamily,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(width: 8),
 
-                        // Mission Era / Level Code
-                        Flexible(
-                          child: Text(
-                            missionEra,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.7),
-                              fontSize: 9.5,
-                              fontFamily: NotionTheme.pixelFont,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        // Live Telemetry Clock & Status Badge (Cleanly docked in top bar)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.white12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 5,
+                                height: 5,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF22C55E),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _formatClock(_now),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontFamily: NotionTheme.pixelFont,
+                                  fontSize: 8,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Text(
+                                "LIVE",
+                                style: TextStyle(
+                                  color: Color(0xFF22C55E),
+                                  fontFamily: NotionTheme.pixelFont,
+                                  fontSize: 7,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                        const SizedBox(width: 8),
 
                         const Spacer(),
 
@@ -577,6 +829,18 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            // Detective Story Dossier Button
+                            _buildTacticalBtn(
+                              icon: LucideIcons.bookOpen,
+                              tooltip: _isDossierOpen ? "Collapse Story Dossier" : "Open Story Dossier",
+                              accentColor: _isDossierOpen ? const Color(0xFFFBBF24) : Colors.white70,
+                              onTap: () {
+                                AudioService.playClick();
+                                setState(() => _isDossierOpen = !_isDossierOpen);
+                              },
+                            ),
+                            const SizedBox(width: 6),
+
                             // Evidence Vault Button
                             Stack(
                               clipBehavior: Clip.none,
@@ -634,15 +898,6 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
                             ),
                             const SizedBox(width: 6),
 
-                            // Shuttle Pilot
-                            _buildTacticalBtn(
-                              icon: LucideIcons.rocket,
-                              tooltip: "Pilot Space Shuttle Orbiter",
-                              accentColor: const Color(0xFF38BDF8),
-                              onTap: () => setState(() => _showShuttleFlight = true),
-                            ),
-                            const SizedBox(width: 6),
-
                             // Sound Mute Toggle
                             _buildTacticalBtn(
                               icon: widget.vault.isSoundMuted ? LucideIcons.volumeX : LucideIcons.volume2,
@@ -671,363 +926,178 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
               ),
             ),
 
-            // 6. Bottom-Left HUD: Subsystem & Objective Briefing
-            Positioned(
-              left: 14,
-              bottom: 12,
-              child: SafeArea(
-                top: false,
-                right: false,
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 320),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xEE090F1D),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.3)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF22C55E),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            _formatClock(_now),
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontFamily: NotionTheme.pixelFont,
-                              fontSize: 9,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            "STATUS: INSPECTING",
-                            style: TextStyle(
-                              color: const Color(0xFF38BDF8),
-                              fontFamily: NotionTheme.pixelFont,
-                              fontSize: 8,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        objective,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 9.5,
-                          height: 1.25,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // 7. Bottom-Right HUD: Primary Investigation Action Button
-            Positioned(
-              right: 14,
-              bottom: 12,
-              child: SafeArea(
-                top: false,
-                left: false,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Companion Mischief Pill
-                    if (_mischiefExpanded)
-                      GestureDetector(
-                        onTap: _cycleMischief,
-                        child: Container(
-                          constraints: const BoxConstraints(maxWidth: 240),
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xF00B111E),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Color(int.parse(_mischiefMessages[_mischiefIndex]["color"]!)),
-                              width: 1.0,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    _mischiefMessages[_mischiefIndex]["tag"]!,
-                                    style: TextStyle(
-                                      color: Color(int.parse(_mischiefMessages[_mischiefIndex]["color"]!)),
-                                      fontFamily: NotionTheme.pixelFont,
-                                      fontSize: 7.5,
-                                    ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () => setState(() => _mischiefExpanded = false),
-                                    child: const Icon(LucideIcons.x, color: Colors.white38, size: 12),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                _mischiefMessages[_mischiefIndex]["text"]!,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  height: 1.2,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                    // Companion Avatar Button
-                    GestureDetector(
-                      onTap: () {
-                        if (_mischiefExpanded) {
-                          _cycleMischief();
-                        } else {
-                          setState(() => _mischiefExpanded = true);
-                          AudioService.playClick();
-                        }
-                      },
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: const Color(0xDD090F1D),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFF38BDF8).withValues(alpha: 0.8),
-                            width: 1.2,
-                          ),
-                        ),
-                        child: const Icon(LucideIcons.sparkles, color: Color(0xFF38BDF8), size: 16),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-
-                    // PRIMARY ACTION: INVESTIGATE SUBSYSTEM
-                    ElevatedButton.icon(
-                      onPressed: () => _openPuzzle(puzzleType),
-                      icon: const Icon(LucideIcons.searchCode, size: 16),
-                      label: Text(
-                        "INVESTIGATE SUBSYSTEM",
-                        style: TextStyle(
-                          fontFamily: NotionTheme.pixelFont,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF22C55E),
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          side: const BorderSide(color: Color(0xFF4ADE80), width: 1.2),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // 8. Hotspot Subsystem Inspection Overlay Modal
-            if (_inspectedHotspot != null)
+            // 6. Space Detective Storytelling Dossier Console (Beside the Viewer)
+            if (_isDossierOpen)
               Positioned(
-                left: 20,
-                right: 20,
-                bottom: 60,
-                child: Center(
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 420),
-                    decoration: BoxDecoration(
-                      color: const Color(0xF50B1220),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF38BDF8), width: 1.2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF38BDF8).withValues(alpha: 0.25),
-                          blurRadius: 18,
-                        )
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(LucideIcons.cpu, size: 16, color: Color(0xFF38BDF8)),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _inspectedHotspot!["title"]!,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontFamily: NotionTheme.pixelFont,
-                                    fontSize: 9.5,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                icon: const Icon(LucideIcons.x, color: Colors.white54, size: 15),
-                                onPressed: () => setState(() => _inspectedHotspot = null),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _inspectedHotspot!["desc"]!,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              fontSize: 10,
-                              height: 1.25,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  _openPuzzle(_inspectedHotspot!["puzzleType"]!);
-                                },
-                                icon: const Icon(LucideIcons.play, size: 12),
-                                label: Text(
-                                  "ENGAGE ${_inspectedHotspot!['puzzleName']!}",
-                                  style: TextStyle(
-                                    fontFamily: NotionTheme.pixelFont,
-                                    fontSize: 9,
-                                  ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF22C55E),
-                                  foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                top: 56,
+                bottom: 10,
+                right: 10,
+                width: dossierWidth,
+                child: SpaceDetectiveDossierPanel(
+                  caseData: detectiveCase,
+                  vault: widget.vault,
+                  initialTab: _dossierTab,
+                  isSubsystemDiagnosed: _isSubsystemDiagnosed,
+                  onClose: () {
+                    AudioService.playBack();
+                    setState(() => _isDossierOpen = false);
+                  },
+                  onVerdictSolved: _onVerdictSolved,
+                  onOpenSubsystemPuzzle: () => _openPuzzle(puzzleType),
                 ),
               ),
 
-            // 9. Victory Celebratory Modal
+            // Collapsed Dossier Toggle Handle
+            if (!_isDossierOpen)
+              Positioned(
+                top: 66,
+                right: 12,
+                child: _buildDossierToggleBadge(detectiveCase),
+              ),
+
+            // 9. Space Detective Case Resolution Celebratory Modal
             if (_showVictoryDialog)
               Positioned.fill(
                 child: Container(
-                  color: Colors.black.withValues(alpha: 0.82),
+                  color: Colors.black.withValues(alpha: 0.85),
                   child: Center(
                     child: Container(
-                      constraints: const BoxConstraints(maxWidth: 440),
-                      padding: const EdgeInsets.all(20),
+                      constraints: const BoxConstraints(maxWidth: 460),
+                      padding: const EdgeInsets.all(22),
                       decoration: BoxDecoration(
                         color: const Color(0xFF0C1322),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF22C55E), width: 1.5),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFFBBF24), width: 1.5),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF22C55E).withValues(alpha: 0.3),
-                            blurRadius: 24,
+                            color: const Color(0xFFFBBF24).withValues(alpha: 0.25),
+                            blurRadius: 28,
                           )
                         ],
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(LucideIcons.award, color: Color(0xFF22C55E), size: 40),
+                          const Icon(LucideIcons.award, color: Color(0xFFFBBF24), size: 40),
                           const SizedBox(height: 10),
                           Text(
-                            "SUBSYSTEM RESTORED // 3 STARS",
-                            style: TextStyle(
-                              color: const Color(0xFF22C55E),
+                            "SPACE DETECTIVE CASE SOLVED // ${widget.campaignLevel?.code ?? 'MISSION'}",
+                            style: const TextStyle(
+                              color: Color(0xFFFBBF24),
                               fontFamily: NotionTheme.pixelFont,
-                              fontSize: 12,
+                              fontSize: 10,
                               fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
                             ),
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            missionTitle.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                           const SizedBox(height: 8),
+
+                          // Rank Badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFBBF24).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: const Color(0xFFFBBF24)),
+                            ),
+                            child: Text(
+                              "RANK: $_verdictRank",
+                              style: const TextStyle(
+                                color: Color(0xFFFBBF24),
+                                fontFamily: NotionTheme.pixelFont,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Star Rating
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: List.generate(
                               3,
-                              (index) => const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 4),
-                                child: Icon(LucideIcons.star, color: Color(0xFFF59E0B), size: 24),
+                              (index) => Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: Icon(
+                                  index < _verdictStars ? LucideIcons.star : LucideIcons.starOff,
+                                  color: index < _verdictStars ? const Color(0xFFFBBF24) : Colors.white24,
+                                  size: 24,
+                                ),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 6),
                           Text(
-                            _victoryMessage.isNotEmpty
-                                ? _victoryMessage
-                                : "Authentic physical telemetry validated and unsealed in Evidence Vault.",
-                            textAlign: TextAlign.center,
+                            "Rubric Score: $_verdictScore / 10 Points • $_verdictStars Stars Secured",
                             style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              height: 1.35,
+                              color: Color(0xFF38BDF8),
+                              fontFamily: NotionTheme.pixelFont,
+                              fontSize: 8.5,
                             ),
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 12),
+
+                          // Case Solution Summary
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.04),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.white12),
+                            ),
+                            child: Text(
+                              _victoryMessage.isNotEmpty
+                                  ? "$_victoryMessage\n\n${detectiveCase.caseSolution}"
+                                  : detectiveCase.caseSolution,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10.5,
+                                height: 1.4,
+                              ),
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               OutlinedButton.icon(
                                 onPressed: () {
-                                  setState(() => _showVictoryDialog = false);
-                                  widget.onReturnToArchive();
+                                  setState(() {
+                                    _showVictoryDialog = false;
+                                    _isDossierOpen = true;
+                                    _dossierTab = 3;
+                                  });
                                 },
-                                icon: const Icon(LucideIcons.chevronLeft, size: 14),
-                                label: Text(
-                                  "RETURN TO ARCHIVE",
+                                icon: const Icon(LucideIcons.bookOpen, size: 14),
+                                label: const Text(
+                                  "REVIEW DOSSIER",
                                   style: TextStyle(
                                     fontFamily: NotionTheme.pixelFont,
-                                    fontSize: 9,
+                                    fontSize: 8.5,
                                   ),
                                 ),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white70,
-                                  side: const BorderSide(color: Colors.white24),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  foregroundColor: const Color(0xFF38BDF8),
+                                  side: const BorderSide(color: Color(0xFF38BDF8)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 10),
                               ElevatedButton.icon(
                                 onPressed: () {
                                   setState(() => _showVictoryDialog = false);
@@ -1035,16 +1105,17 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
                                 },
                                 icon: const Icon(LucideIcons.check, size: 14),
                                 label: Text(
-                                  "CONTINUE",
-                                  style: TextStyle(
+                                  _showWorldCompleteDialog ? "SECTOR ARCHIVED" : "CONTINUE",
+                                  style: const TextStyle(
                                     fontFamily: NotionTheme.pixelFont,
-                                    fontSize: 9,
+                                    fontSize: 8.5,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF22C55E),
                                   foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                 ),
                               ),
                             ],
@@ -1093,57 +1164,10 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
               StudentGuideDialog(
                 onClose: () => setState(() => _showStudentGuide = false),
               ),
-
-            // 15. SHUTTLE FLIGHT SIMULATOR
-            if (_showShuttleFlight)
-              ShuttleFlightView(
-                onExitFlight: () => setState(() => _showShuttleFlight = false),
-              ),
           ],
         ),
       ),
     );
-  }
-
-  List<Widget> _buildHotspots(String puzzleType, String hardware) {
-    if (_showVault || _showSolarMap || _showTimeline || _showStudentGuide || _showShuttleFlight || _activePuzzleType != null || _showVictoryDialog) {
-      return [];
-    }
-
-    final primaryName = puzzleType.toUpperCase();
-
-    return [
-      Positioned(
-        top: 110,
-        left: 230,
-        child: _buildReticle(
-          title: "PRIMARY SENSOR // $hardware",
-          desc: "Calibrate and verify physical NASA scientific instruments.",
-          puzzleType: puzzleType,
-          puzzleName: primaryName,
-        ),
-      ),
-      Positioned(
-        top: 180,
-        left: 310,
-        child: _buildReticle(
-          title: "TRAJECTORY DYNAMICS",
-          desc: "Analyze planetary approach geometry and orbital lines.",
-          puzzleType: "flyby",
-          puzzleName: "SLINGSHOT TRAJECTORY",
-        ),
-      ),
-      Positioned(
-        bottom: 90,
-        left: 200,
-        child: _buildReticle(
-          title: "CHRONOLOGICAL LOG",
-          desc: "Examine chronological telemetry packets transmitted from deep space.",
-          puzzleType: "telemetry",
-          puzzleName: "TELEMETRY CHRONOLOGY",
-        ),
-      ),
-    ];
   }
 
   Widget _buildArchivalImageViewer(String imagePath, String hardware) {
@@ -1201,43 +1225,6 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
     );
   }
 
-  Widget _buildReticle({
-    required String title,
-    required String desc,
-    required String puzzleType,
-    required String puzzleName,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        AudioService.playCardSelect();
-        setState(() {
-          _inspectedHotspot = {
-            "title": title,
-            "desc": desc,
-            "puzzleType": puzzleType,
-            "puzzleName": puzzleName,
-          };
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: const Color(0xDD090F1D),
-          shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFF38BDF8), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF38BDF8).withValues(alpha: 0.5),
-              blurRadius: 8,
-              spreadRadius: 1,
-            )
-          ],
-        ),
-        child: const Icon(LucideIcons.crosshair, color: Color(0xFF38BDF8), size: 14),
-      ),
-    );
-  }
-
   Widget _buildTacticalBtn({
     required IconData icon,
     required String tooltip,
@@ -1264,6 +1251,136 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
             ),
             child: Icon(icon, color: Colors.white, size: 15),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDossierToggleBadge(SpaceDetectiveCase caseData) {
+    return InkWell(
+      onTap: () {
+        AudioService.playClick();
+        setState(() => _isDossierOpen = true);
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: const Color(0xEE090F1E),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFFBBF24), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFBBF24).withValues(alpha: 0.25),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            )
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(LucideIcons.bookOpen, size: 14, color: Color(0xFFFBBF24)),
+            const SizedBox(width: 6),
+            Text(
+              "STORY DOSSIER [${caseData.code}]",
+              style: const TextStyle(
+                color: Color(0xFFFBBF24),
+                fontFamily: NotionTheme.pixelFont,
+                fontSize: 8.5,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Icon(LucideIcons.chevronLeft, size: 13, color: Color(0xFFFBBF24)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomRightActionButton(SpaceDetectiveCase detectiveCase, String puzzleType) {
+    if (_isVerdictSubmitted) {
+      return ElevatedButton.icon(
+        onPressed: () {
+          AudioService.playCardSelect();
+          setState(() {
+            _isDossierOpen = true;
+            _dossierTab = 3;
+          });
+        },
+        icon: const Icon(LucideIcons.checkCircle2, size: 15),
+        label: Text(
+          "CASE RESOLVED [${_verdictStars > 0 ? '★' * _verdictStars : 'VERIFIED'}]",
+          style: const TextStyle(
+            fontFamily: NotionTheme.pixelFont,
+            fontSize: 9.5,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF22C55E),
+          foregroundColor: Colors.black,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: const BorderSide(color: Color(0xFF4ADE80), width: 1.2),
+          ),
+        ),
+      );
+    }
+
+    if (_isSubsystemDiagnosed) {
+      return ElevatedButton.icon(
+        onPressed: () {
+          AudioService.playCardSelect();
+          setState(() {
+            _isDossierOpen = true;
+            _dossierTab = 3;
+          });
+        },
+        icon: const Icon(LucideIcons.fileCheck2, size: 15),
+        label: const Text(
+          "PROCEED TO CASE DEBRIEF",
+          style: TextStyle(
+            fontFamily: NotionTheme.pixelFont,
+            fontSize: 9.5,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFF59E0B),
+          foregroundColor: Colors.black,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: const BorderSide(color: Color(0xFFFBBF24), width: 1.4),
+          ),
+        ),
+      );
+    }
+
+    return ElevatedButton.icon(
+      onPressed: () => _openPuzzle(puzzleType),
+      icon: const Icon(LucideIcons.searchCode, size: 15),
+      label: const Text(
+        "INVESTIGATE SUBSYSTEM",
+        style: TextStyle(
+          fontFamily: NotionTheme.pixelFont,
+          fontSize: 9.5,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF22C55E),
+        foregroundColor: Colors.black,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: Color(0xFF4ADE80), width: 1.2),
         ),
       ),
     );
@@ -1430,4 +1547,3 @@ class _ArchivalScanGridPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mohasunno/main.dart';
 import 'package:mohasunno/services/vault_service.dart';
+import 'package:mohasunno/space/space_mission_view.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -270,32 +271,28 @@ void main() {
     await tester.tap(find.text("LAUNCH MISSION RECONSTRUCTION"));
     await tester.pump(const Duration(milliseconds: 400));
 
-    // 3. In Space Mission View: tap hotspot crosshair and engage puzzle modal at small landscape screen
-    expect(find.byIcon(LucideIcons.crosshair), findsWidgets);
-    await tester.tap(find.byIcon(LucideIcons.crosshair).first);
-    await tester.pump(const Duration(milliseconds: 300));
-
-    expect(find.textContaining("ENGAGE"), findsOneWidget);
-    await tester.tap(find.textContaining("ENGAGE"));
+    // 3. In Space Mission View: engage puzzle modal directly via dossier console
+    expect(find.text("PUZZLE"), findsOneWidget);
+    await tester.tap(find.text("PUZZLE"));
     await tester.pump(const Duration(milliseconds: 400));
 
     // Verify Puzzle modal opened with zero overflow
     expect(find.byIcon(LucideIcons.x), findsWidgets);
-    await tester.tap(find.byIcon(LucideIcons.x).first);
+    await tester.tap(find.byIcon(LucideIcons.x).last);
     await tester.pump(const Duration(milliseconds: 400));
 
     // Return to main menu via home icon
     await tester.tap(find.byIcon(LucideIcons.home));
     await tester.pump(const Duration(milliseconds: 400));
 
-    // 4. Open Shuttle Flight Simulator directly
-    await tester.ensureVisible(find.text("Shuttle Flight Simulator", skipOffstage: false));
+    // 4. Continue Level directly from Main Home (remembers last played level)
+    await tester.ensureVisible(find.textContaining("CONTINUE:", skipOffstage: false));
     await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(find.text("Shuttle Flight Simulator"));
+    await tester.tap(find.textContaining("CONTINUE:"));
     await tester.pump(const Duration(milliseconds: 400));
 
-    // Verify Shuttle Flight HUD is rendered cleanly with zero overflows
-    expect(find.text("ORBITER // CRUISE"), findsOneWidget);
-    expect(find.text("AUTOPILOT:"), findsOneWidget);
+    // Verify Space Mission View opened for the continued level with zero overflows
+    expect(find.byType(SpaceMissionView), findsOneWidget);
+    expect(find.text("M1"), findsWidgets);
   });
 }

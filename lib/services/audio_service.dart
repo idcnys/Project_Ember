@@ -5,17 +5,120 @@ class AudioService {
   static bool isMuted = false;
   static bool isHapticEnabled = true;
 
+  // BGM Track Constants
+  static const String trackAmbient = "lexin_music-space-ambient-sci-fi-121842.mp3";
+  static const String trackDetective = "atlasaudio-detective-518071.mp3";
+
+  // SFX volume 50% by default, BGM ambient volume 40% by default
+  static double sfxVolume = 0.5;
+  static double bgmVolume = 0.4;
+  static bool isBgmEnabled = true;
+  static String currentTrack = trackAmbient;
+  static bool _bgmStarted = false;
+
   // Dedicated players so rapid sounds (clicks, swipes, alerts, launches) don't violently clobber each other
   static final AudioPlayer _clickPlayer = AudioPlayer();
   static final AudioPlayer _swipePlayer = AudioPlayer();
   static final AudioPlayer _sfxPlayer = AudioPlayer();
   static final AudioPlayer _launchPlayer = AudioPlayer();
   static final AudioPlayer _zoomPlayer = AudioPlayer();
+  static final AudioPlayer _bgmPlayer = AudioPlayer();
+
+  /// Start ambient background music in loop with 40% volume by default
+  static Future<void> startBgm({String? track}) async {
+    if (track != null && track.isNotEmpty) {
+      currentTrack = track;
+    }
+    if (!isBgmEnabled || isMuted) {
+      return;
+    }
+    _bgmStarted = true;
+    try {
+      await _bgmPlayer.stop();
+      await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
+      await _bgmPlayer.setVolume(bgmVolume);
+      await _bgmPlayer.play(
+        AssetSource('sound/$currentTrack'),
+      );
+    } catch (_) {
+      // Gracefully silent in environments without audio device / tests
+    }
+  }
+
+  /// Switch the active BGM track dynamically
+  static Future<void> setBgmTrack(String track) async {
+    currentTrack = track;
+    if (isBgmEnabled && !isMuted) {
+      try {
+        await _bgmPlayer.stop();
+        await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
+        await _bgmPlayer.setVolume(bgmVolume);
+        await _bgmPlayer.play(
+          AssetSource('sound/$currentTrack'),
+        );
+        _bgmStarted = true;
+      } catch (_) {}
+    }
+  }
+
+  /// Turn BGM on or off
+  static Future<void> setBgmEnabled(bool enabled) async {
+    isBgmEnabled = enabled;
+    try {
+      if (!isBgmEnabled || isMuted) {
+        await _bgmPlayer.stop();
+        _bgmStarted = false;
+      } else {
+        await startBgm();
+      }
+    } catch (_) {}
+  }
+
+  /// Stop BGM
+  static void stopBgm() {
+    try {
+      _bgmPlayer.stop();
+      _bgmStarted = false;
+    } catch (_) {}
+  }
+
+  /// Adjust BGM volume dynamically
+  static void setBgmVolume(double volume) {
+    bgmVolume = volume.clamp(0.0, 1.0);
+    try {
+      if (!isMuted && isBgmEnabled) {
+        _bgmPlayer.setVolume(bgmVolume);
+      }
+    } catch (_) {}
+  }
+
+  /// Adjust SFX volume dynamically (50% default)
+  static void setSfxVolume(double volume) {
+    sfxVolume = volume.clamp(0.0, 1.0);
+  }
+
+  /// Update mute status for both SFX and BGM
+  static void updateMuted(bool muted) {
+    isMuted = muted;
+    try {
+      if (isMuted) {
+        _bgmPlayer.setVolume(0.0);
+      } else {
+        if (isBgmEnabled) {
+          _bgmPlayer.setVolume(bgmVolume);
+          if (!_bgmStarted) {
+            startBgm();
+          }
+        }
+      }
+    } catch (_) {}
+  }
 
   static Future<void> _safePlay(AudioPlayer player, String soundFile) async {
     if (isMuted) return;
     try {
       await player.stop();
+      await player.setVolume(sfxVolume);
       await player.play(
         AssetSource('sound/$soundFile'),
         mode: PlayerMode.lowLatency,

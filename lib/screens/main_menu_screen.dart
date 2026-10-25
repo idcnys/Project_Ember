@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import '../models/campaign_data.dart';
 import '../services/vault_service.dart';
 import '../services/audio_service.dart';
 import '../theme/notion_theme.dart';
@@ -15,7 +16,8 @@ class MainMenuScreen extends StatefulWidget {
   final VoidCallback onStartGame;
   final VoidCallback onOpenWorldSelect;
   final VoidCallback onOpenSpaceMissions;
-  final VoidCallback onOpenShuttleFlight;
+  final VoidCallback? onOpenModelMuseum;
+  final ValueChanged<CampaignLevel>? onContinueLevel;
   final VoidCallback? onOpenOnboarding;
 
   const MainMenuScreen({
@@ -24,7 +26,8 @@ class MainMenuScreen extends StatefulWidget {
     required this.onStartGame,
     required this.onOpenWorldSelect,
     required this.onOpenSpaceMissions,
-    required this.onOpenShuttleFlight,
+    this.onOpenModelMuseum,
+    this.onContinueLevel,
     this.onOpenOnboarding,
   });
 
@@ -366,12 +369,21 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // 1. Primary: Start World Select Campaign
+                            // 0. Primary: Continue Last Played Level (Remembered by Vault)
+                            _buildContinueLevelCard(
+                              level: widget.vault.activeLevel,
+                              onTap: () {
+                                AudioService.playSuccess();
+                                widget.onContinueLevel?.call(widget.vault.activeLevel);
+                              },
+                            ),
+                            const SizedBox(height: 8),
+
+                            // 1. Campaign: Select World
                             _buildNotionActionCard(
                               title: "Campaign: Select World",
                               subtitle: "4 Planetary Sectors • 24 Historical Spacecraft Anomalies",
                               icon: LucideIcons.compass,
-                              isPrimary: true,
                               accentColor: NotionTheme.pastelGreen,
                               onTap: () {
                                 AudioService.playSuccess();
@@ -380,28 +392,19 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                             ),
                             const SizedBox(height: 8),
 
-                            // 2. Space Directives (3D Probe Lab)
+                            // 2. Model Museum (Interactive 3D Hardware Archive)
                             _buildNotionActionCard(
-                              title: "Space Directives (3D)",
-                              subtitle: "Inspect historical probes & solve hands-on telemetry puzzles",
-                              icon: LucideIcons.orbit,
+                              title: "Model Museum",
+                              subtitle: "Interactive 3D gallery of authentic NASA spacecraft, rovers & telescopes",
+                              icon: LucideIcons.box,
                               accentColor: NotionTheme.pastelAmber,
                               onTap: () {
                                 AudioService.playClick();
-                                widget.onOpenSpaceMissions();
-                              },
-                            ),
-                            const SizedBox(height: 8),
-
-                            // 3. Space Shuttle Simulator
-                            _buildNotionActionCard(
-                              title: "Shuttle Flight Simulator",
-                              subtitle: "Fly the Space Shuttle Orbiter through the Solar System in 3D",
-                              icon: LucideIcons.rocket,
-                              accentColor: NotionTheme.pastelPurple,
-                              onTap: () {
-                                AudioService.playClick();
-                                widget.onOpenShuttleFlight();
+                                if (widget.onOpenModelMuseum != null) {
+                                  widget.onOpenModelMuseum!();
+                                } else {
+                                  widget.onOpenSpaceMissions();
+                                }
                               },
                             ),
                             const SizedBox(height: 8),
@@ -514,6 +517,122 @@ class _MainMenuScreenState extends State<MainMenuScreen>
               onClose: () => setState(() => _showSolarMap = false),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildContinueLevelCard({
+    required CampaignLevel level,
+    required VoidCallback onTap,
+  }) {
+    const accentColor = Color(0xFF38BDF8); // High-tech Cyan
+    final starsText = level.isCompleted ? "★" * level.stars : "IN PROGRESS";
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        splashColor: accentColor.withValues(alpha: 0.15),
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: const Color(0xFF0C1929),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: accentColor,
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: accentColor.withValues(alpha: 0.22),
+                blurRadius: 12,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              NotionTheme.cyberDivider(color: accentColor),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: accentColor.withValues(alpha: 0.4)),
+                      ),
+                      child: const Icon(LucideIcons.play, size: 18, color: accentColor),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: accentColor,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: Text(
+                                  level.code,
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 8.5,
+                                    fontFamily: NotionTheme.pixelFont,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  "CONTINUE: ${level.spacecraft.toUpperCase()}",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: -0.2,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            "${level.title} • $starsText",
+                            style: const TextStyle(
+                              color: Color(0xFF7DD3FC),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(
+                      LucideIcons.chevronRight,
+                      size: 16,
+                      color: accentColor,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
