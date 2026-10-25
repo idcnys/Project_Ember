@@ -173,9 +173,12 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                                   child: Image.asset(
                                     'assets/images/app_logo.png',
                                     fit: BoxFit.cover,
-                                    errorBuilder: (ctx, err, stack) => Image.asset(
-                                      'assets/images/app_logo.jpg',
-                                      fit: BoxFit.cover,
+                                    errorBuilder: (ctx, err, stack) => const Center(
+                                      child: Icon(
+                                        LucideIcons.rocket,
+                                        size: 24,
+                                        color: Color(0xFF38BDF8),
+                                      ),
                                     ),
                                   ),
                                 ),

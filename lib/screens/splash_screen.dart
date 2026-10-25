@@ -205,18 +205,12 @@ class _SplashScreenState extends State<SplashScreen>
                                   'assets/images/app_logo.png',
                                   fit: BoxFit.cover,
                                   errorBuilder: (ctx, err, stack) {
-                                    return Image.asset(
-                                      'assets/images/app_logo.jpg',
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (ctx2, err2, stack2) {
-                                        return const Center(
-                                          child: Icon(
-                                            LucideIcons.rocket,
-                                            size: 48,
-                                            color: Color(0xFF38BDF8),
-                                          ),
-                                        );
-                                      },
+                                    return const Center(
+                                      child: Icon(
+                                        LucideIcons.rocket,
+                                        size: 48,
+                                        color: Color(0xFF38BDF8),
+                                      ),
                                     );
                                   },
                                 ),
