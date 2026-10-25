@@ -27,13 +27,13 @@ void main() {
   group('Interactive Audio & Sound Assets Suite', () {
     test('All authentic sci-fi sound effects exist in assets/sound/', () {
       final requiredSounds = [
-        'click.wav',
-        'level_complete.wav',
-        'level_unlock.wav',
-        'on_back.wav',
-        'on_level_open.wav',
-        'world_complete.wav',
-        'zoomin_ control.wav',
+        'click.mp3',
+        'level_complete.mp3',
+        'level_unlock.mp3',
+        'on_back.mp3',
+        'on_level_open.mp3',
+        'world_complete.mp3',
+        'zoomin_ control.mp3',
         'lexin_music-space-ambient-sci-fi-121842.mp3',
         'atlasaudio-detective-518071.mp3',
       ];

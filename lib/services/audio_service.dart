@@ -201,7 +201,7 @@ class AudioService {
         HapticFeedback.selectionClick();
       } catch (_) {}
     }
-    _safePlay(_clickPlayer, 'click.wav');
+    _safePlay(_clickPlayer, 'click.mp3');
   }
 
   /// Back navigation sound
@@ -211,7 +211,7 @@ class AudioService {
         HapticFeedback.selectionClick();
       } catch (_) {}
     }
-    _safePlay(_clickPlayer, 'on_back.wav');
+    _safePlay(_clickPlayer, 'on_back.mp3');
   }
 
   /// Touch swipe transition across worlds / levels or unlocking
@@ -221,7 +221,7 @@ class AudioService {
         HapticFeedback.selectionClick();
       } catch (_) {}
     }
-    _safePlay(_swipePlayer, 'level_unlock.wav');
+    _safePlay(_swipePlayer, 'level_unlock.mp3');
   }
 
   /// When level unlock occurs
@@ -236,7 +236,7 @@ class AudioService {
         HapticFeedback.lightImpact();
       } catch (_) {}
     }
-    _safePlay(_sfxPlayer, 'click.wav');
+    _safePlay(_sfxPlayer, 'click.mp3');
   }
 
   /// Level / Mission launch sound
@@ -246,7 +246,7 @@ class AudioService {
         HapticFeedback.heavyImpact();
       } catch (_) {}
     }
-    _safePlay(_launchPlayer, 'on_level_open.wav');
+    _safePlay(_launchPlayer, 'on_level_open.mp3');
   }
 
   static void playLevelOpen() {
@@ -260,7 +260,7 @@ class AudioService {
         HapticFeedback.mediumImpact();
       } catch (_) {}
     }
-    _safePlay(_launchPlayer, 'level_complete.wav');
+    _safePlay(_launchPlayer, 'level_complete.mp3');
   }
 
   static void playSuccess() {
@@ -274,7 +274,7 @@ class AudioService {
         HapticFeedback.heavyImpact();
       } catch (_) {}
     }
-    _safePlay(_launchPlayer, 'world_complete.wav');
+    _safePlay(_launchPlayer, 'world_complete.mp3');
   }
 
   /// Clue / discovery notification chime
@@ -294,7 +294,7 @@ class AudioService {
         HapticFeedback.heavyImpact();
       } catch (_) {}
     }
-    _safePlay(_sfxPlayer, 'click.wav');
+    _safePlay(_sfxPlayer, 'click.mp3');
   }
 
   /// Gear / Subsystem inspect toggle
@@ -309,6 +309,6 @@ class AudioService {
         HapticFeedback.lightImpact();
       } catch (_) {}
     }
-    _safePlay(_zoomPlayer, 'zoomin_ control.wav');
+    _safePlay(_zoomPlayer, 'zoomin_ control.mp3');
   }
 }

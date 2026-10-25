@@ -90,11 +90,11 @@ void main() {
 
     test('All 5 archival hardware images exist for missions without 3D models', () {
       final hardwareImages = [
-        'assets/images/hardware/m1_ranger7.jpg',
+        'assets/images/hardware/m1_ranger7.webp',
         'assets/images/hardware/m2_surveyor1.webp',
-        'assets/images/hardware/m4_lunar_roving_vehicle.jpg',
-        'assets/images/hardware/m5_apollo_alsep.jpg',
-        'assets/images/hardware/r2_pathfinder_sojourner.jpg',
+        'assets/images/hardware/m4_lunar_roving_vehicle.webp',
+        'assets/images/hardware/m5_apollo_alsep.webp',
+        'assets/images/hardware/r2_pathfinder_sojourner.webp',
       ];
 
       for (final path in hardwareImages) {

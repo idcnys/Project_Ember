@@ -92,7 +92,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
             child: Opacity(
               opacity: 0.42,
               child: Image.asset(
-                'assets/images/home_bg.jpg',
+                'assets/images/home_bg.webp',
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.medium,
               ),

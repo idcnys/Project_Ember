@@ -42,15 +42,15 @@ class _WorldSelectScreenState extends State<WorldSelectScreen> {
   String _getWorldBackdrop(String id) {
     switch (id) {
       case "world-1":
-        return "assets/images/banner/moon_world.jpg";
+        return "assets/images/banner/moon_world.webp";
       case "world-2":
-        return "assets/images/banner/mars-world.jpg";
+        return "assets/images/banner/mars-world.webp";
       case "world-3":
-        return "assets/images/banner/deepspace_world.jpg";
+        return "assets/images/banner/deepspace_world.webp";
       case "world-4":
-        return "assets/images/banner/the_coverngence_world.jpg";
+        return "assets/images/banner/the_coverngence_world.webp";
       default:
-        return "assets/images/banner/moon_world.jpg";
+        return "assets/images/banner/moon_world.webp";
     }
   }
 

@@ -36,37 +36,37 @@ class CampaignLevel {
   String get bannerPath {
     final c = code.toLowerCase().trim();
     switch (c) {
-      case "m1": return "assets/images/banner/m1.jpg";
-      case "m2": return "assets/images/banner/m2.jpg";
-      case "m3": return "assets/images/banner/m3.jpg";
-      case "m4": return "assets/images/banner/m4.jpg";
-      case "m5": return "assets/images/banner/m5.jpg";
-      case "m6": return "assets/images/banner/m6.jpg";
-      case "m7": return "assets/images/banner/m7.jpg";
-      case "r1": return "assets/images/banner/r1.jpg";
-      case "r2": return "assets/images/banner/r2.jpg";
-      case "r3": return "assets/images/banner/r3.jpg";
-      case "r4": return "assets/images/banner/r4.jpg";
-      case "r5": return "assets/images/banner/r5.jpg";
-      case "r6": return "assets/images/banner/r6.jpg";
-      case "r7": return "assets/images/banner/r7.jpg";
-      case "d1": return "assets/images/banner/d1.jpg";
-      case "d2": return "assets/images/banner/d2.jpg";
-      case "d3": return "assets/images/banner/d3.jpg";
-      case "d4": return "assets/images/banner/d4.jpg";
-      case "d5": return "assets/images/banner/d5.jpg";
-      case "d6": return "assets/images/banner/d6.jpg";
-      case "d7": return "assets/images/banner/deepspace_world.jpg";
-      case "4.1": return "assets/images/banner/4.1.jpg";
-      case "4.2": return "assets/images/banner/4.2.jpg";
-      case "4.3": return "assets/images/banner/4.3.jpg";
+      case "m1": return "assets/images/banner/m1.webp";
+      case "m2": return "assets/images/banner/m2.webp";
+      case "m3": return "assets/images/banner/m3.webp";
+      case "m4": return "assets/images/banner/m4.webp";
+      case "m5": return "assets/images/banner/m5.webp";
+      case "m6": return "assets/images/banner/m6.webp";
+      case "m7": return "assets/images/banner/m7.webp";
+      case "r1": return "assets/images/banner/r1.webp";
+      case "r2": return "assets/images/banner/r2.webp";
+      case "r3": return "assets/images/banner/r3.webp";
+      case "r4": return "assets/images/banner/r4.webp";
+      case "r5": return "assets/images/banner/r5.webp";
+      case "r6": return "assets/images/banner/r6.webp";
+      case "r7": return "assets/images/banner/r7.webp";
+      case "d1": return "assets/images/banner/d1.webp";
+      case "d2": return "assets/images/banner/d2.webp";
+      case "d3": return "assets/images/banner/d3.webp";
+      case "d4": return "assets/images/banner/d4.webp";
+      case "d5": return "assets/images/banner/d5.webp";
+      case "d6": return "assets/images/banner/d6.webp";
+      case "d7": return "assets/images/banner/deepspace_world.webp";
+      case "4.1": return "assets/images/banner/4.1.webp";
+      case "4.2": return "assets/images/banner/4.2.webp";
+      case "4.3": return "assets/images/banner/4.3.webp";
       default:
         switch (worldId) {
-          case "world-1": return "assets/images/banner/moon_world.jpg";
-          case "world-2": return "assets/images/banner/mars-world.jpg";
-          case "world-3": return "assets/images/banner/deepspace_world.jpg";
-          case "world-4": return "assets/images/banner/the_coverngence_world.jpg";
-          default: return "assets/images/banner/moon_world.jpg";
+          case "world-1": return "assets/images/banner/moon_world.webp";
+          case "world-2": return "assets/images/banner/mars-world.webp";
+          case "world-3": return "assets/images/banner/deepspace_world.webp";
+          case "world-4": return "assets/images/banner/the_coverngence_world.webp";
+          default: return "assets/images/banner/moon_world.webp";
         }
     }
   }
@@ -77,15 +77,15 @@ class CampaignLevel {
     final c = code.toLowerCase().trim();
     switch (c) {
       case "m1":
-        return "assets/images/hardware/m1_ranger7.jpg";
+        return "assets/images/hardware/m1_ranger7.webp";
       case "m2":
         return "assets/images/hardware/m2_surveyor1.webp";
       case "m4":
-        return "assets/images/hardware/m4_lunar_roving_vehicle.jpg";
+        return "assets/images/hardware/m4_lunar_roving_vehicle.webp";
       case "m5":
-        return "assets/images/hardware/m5_apollo_alsep.jpg";
+        return "assets/images/hardware/m5_apollo_alsep.webp";
       case "r2":
-        return "assets/images/hardware/r2_pathfinder_sojourner.jpg";
+        return "assets/images/hardware/r2_pathfinder_sojourner.webp";
       default:
         return null;
     }
@@ -174,15 +174,15 @@ class CampaignWorld {
   String get bannerPath {
     switch (id) {
       case "world-1":
-        return "assets/images/banner/moon_world.jpg";
+        return "assets/images/banner/moon_world.webp";
       case "world-2":
-        return "assets/images/banner/mars-world.jpg";
+        return "assets/images/banner/mars-world.webp";
       case "world-3":
-        return "assets/images/banner/deepspace_world.jpg";
+        return "assets/images/banner/deepspace_world.webp";
       case "world-4":
-        return "assets/images/banner/the_coverngence_world.jpg";
+        return "assets/images/banner/the_coverngence_world.webp";
       default:
-        return "assets/images/banner/moon_world.jpg";
+        return "assets/images/banner/moon_world.webp";
     }
   }
 
