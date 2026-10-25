@@ -148,15 +148,49 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Game Title: EMBER
-                          const Text(
-                            "Ember",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 32,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.8,
-                            ),
+                          // Game Title: EMBER with App Logo Badge
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: const Color(0xFF38BDF8).withValues(alpha: 0.8),
+                                    width: 1.5,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF38BDF8).withValues(alpha: 0.3),
+                                      blurRadius: 12,
+                                    ),
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8.5),
+                                  child: Image.asset(
+                                    'assets/images/app_logo.png',
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (ctx, err, stack) => Image.asset(
+                                      'assets/images/app_logo.jpg',
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Text(
+                                "Ember",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.8,
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 3),
                           const Text(
@@ -464,7 +498,7 @@ class _MainMenuScreenState extends State<MainMenuScreen>
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: _buildSmallNotionButton(
-                                    title: "About & Lore",
+                                    title: "About",
                                     icon: LucideIcons.info,
                                     onTap: () {
                                       AudioService.playClick();
@@ -492,8 +526,10 @@ class _MainMenuScreenState extends State<MainMenuScreen>
             ),
 
           if (_showAbout)
-            AboutDialogWidget(
-              onClose: () => setState(() => _showAbout = false),
+            Positioned.fill(
+              child: AboutDialogWidget(
+                onClose: () => setState(() => _showAbout = false),
+              ),
             ),
 
           if (_showVault)

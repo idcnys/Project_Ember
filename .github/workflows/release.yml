@@ -1,0 +1,136 @@
+name: Build & Release Android APKs
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build Split & Fat APKs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Verify Flutter Environment
+        run: flutter doctor -v
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Run Static Code Analysis
+        run: flutter analyze
+
+      - name: Run Test Suite
+        run: flutter test
+
+      - name: Prepare Release Output Directory
+        run: mkdir -p release-apks
+
+      - name: Extract App Version from pubspec.yaml
+        id: get_version
+        run: |
+          VERSION=$(grep '^version: ' pubspec.yaml | sed 's/version: //')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "APP_VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build Split-per-ABI APKs
+        run: |
+          flutter build apk --release --split-per-abi
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release-apks/Ember-arm64-v8a-Release.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release-apks/Ember-armeabi-v7a-Release.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk release-apks/Ember-x86_64-Release.apk
+
+      - name: Build Universal Fat APK
+        run: |
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk release-apks/Ember-Universal-Fat-Release.apk
+
+      - name: Generate Checksums
+        run: |
+          cd release-apks
+          sha256sum *.apk > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          cd ..
+
+      - name: Upload Artifacts to Workflow Run
+        uses: actions/upload-artifact@v4
+        with:
+          name: ember-android-apks
+          path: release-apks/*
+          retention-days: 14
+
+      - name: Determine Release Tag & Name
+        id: release_info
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG_NAME="${{ github.ref_name }}"
+            RELEASE_NAME="Ember $TAG_NAME"
+          else
+            TAG_NAME="v${{ env.VERSION }}-build.${{ github.run_number }}"
+            RELEASE_NAME="Ember v${{ env.VERSION }} (Build ${{ github.run_number }})"
+          fi
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+          echo "RELEASE_NAME=$RELEASE_NAME" >> $GITHUB_ENV
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: ${{ env.RELEASE_NAME }}
+          draft: false
+          prerelease: false
+          files: |
+            release-apks/*.apk
+            release-apks/SHA256SUMS.txt
+          body: |
+            ## Ember: The Space Science Investigation 🚀
+            **NASA Space Apps Challenge 2026**
+
+            Automated release build generated from commit `${{ github.sha }}`.
+
+            ---
+
+            ### 📦 Available Android Packages:
+            | Package Name | Architecture | Recommended Use |
+            | :--- | :--- | :--- |
+            | **`Ember-Universal-Fat-Release.apk`** | Universal (All ABIs) | Compatible with any Android device (Sideloading) |
+            | **`Ember-arm64-v8a-Release.apk`** | 64-bit ARM (`arm64-v8a`) | Modern smartphones & tablets (Optimized size) |
+            | **`Ember-armeabi-v7a-Release.apk`** | 32-bit ARM (`armeabi-v7a`) | Legacy 32-bit Android hardware |
+            | **`Ember-x86_64-Release.apk`** | 64-bit x86 (`x86_64`) | Emulators & ChromeOS / Intel Android devices |
+
+            ---
+
+            ### 🔒 Integrity Verification:
+            Cryptographic SHA-256 hashes for all packages are included in `SHA256SUMS.txt`.
+
+            ### 🛰️ Core Features:
+            - **24 Historical Space Missions**: Authentic NASA Apollo, Viking, Kepler, Voyager & Opportunity investigations.
+            - **Interactive 3D Hardware Archive**: glTF/GLB models with real telemetry instrumentation puzzles.
+            - **Interactive Audio**: Dual-channel ambient sci-fi score with synthesized SFX.
+            - **Offline Architecture**: Full offline encrypted telemetry storage.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

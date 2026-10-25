@@ -11,6 +11,7 @@ import 'game_2d/exploration_game.dart';
 import 'space/space_mission_view.dart';
 import 'dialogs/ember_onboarding_dialog.dart';
 import 'screens/model_museum_screen.dart';
+import 'screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,8 +34,13 @@ typedef MohasunnoGameApp = EmberGameApp;
 
 class EmberGameApp extends StatelessWidget {
   final VaultService vaultService;
+  final bool showSplash;
 
-  const EmberGameApp({super.key, required this.vaultService});
+  const EmberGameApp({
+    super.key,
+    required this.vaultService,
+    this.showSplash = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -57,12 +63,13 @@ class EmberGameApp extends StatelessWidget {
           surface: NotionTheme.surfaceCard,
         ),
       ),
-      home: GameRootScreen(vault: vaultService),
+      home: GameRootScreen(vault: vaultService, showSplash: showSplash),
     );
   }
 }
 
 enum GameState {
+  splash,
   mainMenu,
   worldSelect,
   levelSelect,
@@ -73,16 +80,21 @@ enum GameState {
 
 class GameRootScreen extends StatefulWidget {
   final VaultService vault;
+  final bool showSplash;
 
-  const GameRootScreen({super.key, required this.vault});
+  const GameRootScreen({
+    super.key,
+    required this.vault,
+    this.showSplash = true,
+  });
 
   @override
   State<GameRootScreen> createState() => _GameRootScreenState();
 }
 
 class _GameRootScreenState extends State<GameRootScreen> {
-  // Main Menu is the first screen by default!
-  GameState _gameState = GameState.mainMenu;
+  // Splash is shown on initial launch, then switches to Main Menu
+  late GameState _gameState;
   CampaignWorld? _selectedWorld;
   CampaignLevel? _selectedLevel;
   bool _showOnboarding = false;
@@ -91,11 +103,13 @@ class _GameRootScreenState extends State<GameRootScreen> {
   @override
   void initState() {
     super.initState();
-    // Start ambient background music in loop with 40% volume by default
-    AudioService.startBgm();
+    _gameState = widget.showSplash ? GameState.splash : GameState.mainMenu;
 
-    if (!widget.vault.hasCompletedOnboarding) {
-      _showOnboarding = true;
+    if (!widget.showSplash) {
+      AudioService.startBgm();
+      if (!widget.vault.hasCompletedOnboarding) {
+        _showOnboarding = true;
+      }
     }
   }
 
@@ -185,7 +199,7 @@ class _GameRootScreenState extends State<GameRootScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: _gameState == GameState.mainMenu,
+      canPop: _gameState == GameState.mainMenu || _gameState == GameState.splash,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) {
           _switchToMainMenu();
@@ -220,6 +234,20 @@ class _GameRootScreenState extends State<GameRootScreen> {
 
   Widget _buildCurrentStateWidget() {
     switch (_gameState) {
+      case GameState.splash:
+        return SplashScreen(
+          key: const ValueKey('splash_screen'),
+          onFinish: () {
+            AudioService.startBgm();
+            setState(() {
+              _gameState = GameState.mainMenu;
+              if (!widget.vault.hasCompletedOnboarding) {
+                _showOnboarding = true;
+              }
+            });
+          },
+        );
+
       case GameState.mainMenu:
         return MainMenuScreen(
           key: const ValueKey('main_menu_screen'),

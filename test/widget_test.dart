@@ -15,7 +15,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
 
     final vaultService = VaultService();
-    await tester.pumpWidget(EmberGameApp(vaultService: vaultService));
+    await tester.pumpWidget(EmberGameApp(vaultService: vaultService, showSplash: false));
     await tester.pump(const Duration(milliseconds: 200));
 
     // 1. Verify Pixel Chatbot Onboarding modal appears on startup
@@ -72,7 +72,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
 
     final vaultService = VaultService();
-    await tester.pumpWidget(EmberGameApp(vaultService: vaultService));
+    await tester.pumpWidget(EmberGameApp(vaultService: vaultService, showSplash: false));
     await tester.pump(const Duration(milliseconds: 200));
 
     // Skip prologue if shown
@@ -119,7 +119,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
 
     final vaultService = VaultService();
-    await tester.pumpWidget(EmberGameApp(vaultService: vaultService));
+    await tester.pumpWidget(EmberGameApp(vaultService: vaultService, showSplash: false));
     await tester.pump(const Duration(milliseconds: 200));
 
     if (find.text("SKIP PROLOGUE").evaluate().isNotEmpty) {
@@ -138,11 +138,27 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     // Open About Dialog
-    expect(find.text("About & Lore"), findsOneWidget);
-    await tester.tap(find.text("About & Lore"));
+    expect(find.text("About"), findsOneWidget);
+    await tester.tap(find.text("About"));
     await tester.pump(const Duration(milliseconds: 300));
+
+    // Verify Developer & Designer, Team, and Acknowledgments on full-screen About page
+    expect(find.text("Bitto Saha"), findsOneWidget);
+    expect(find.text("Amio"), findsOneWidget);
+    expect(find.text("Baishakhy"), findsOneWidget);
+    expect(find.text("Sara"), findsOneWidget);
+    expect(find.text("Tanvir"), findsOneWidget);
+    expect(find.text("This game is a part of NASA Space Apps Challenge 2026"), findsOneWidget);
+    expect(find.text("Pinterest Curations"), findsOneWidget);
+    expect(find.text("Google Nano Banana"), findsOneWidget);
+    expect(find.text("Pixabay Audio & Mixkit"), findsOneWidget);
+    expect(find.text("Courtesy of NASA / JPL-Caltech"), findsOneWidget);
+    expect(find.text("Lucide Icons"), findsOneWidget);
+    expect(find.text("Google Fonts"), findsOneWidget);
+
     // Close About Dialog
-    await tester.tap(find.byIcon(LucideIcons.x).first);
+    expect(find.text("BACK"), findsOneWidget);
+    await tester.tap(find.text("BACK"));
     await tester.pump(const Duration(milliseconds: 300));
 
     // Open Settings Dialog
@@ -202,7 +218,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
 
     final vaultService = VaultService();
-    await tester.pumpWidget(EmberGameApp(vaultService: vaultService));
+    await tester.pumpWidget(EmberGameApp(vaultService: vaultService, showSplash: false));
     await tester.pump(const Duration(milliseconds: 200));
 
     if (find.text("SKIP PROLOGUE").evaluate().isNotEmpty) {
@@ -246,12 +262,12 @@ void main() {
     await tester.tap(find.byIcon(LucideIcons.x).first);
     await tester.pump(const Duration(milliseconds: 300));
 
-    await tester.ensureVisible(find.text("About & Lore", skipOffstage: false));
+    await tester.ensureVisible(find.text("About", skipOffstage: false));
     await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(find.text("About & Lore"));
+    await tester.tap(find.text("About"));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.byIcon(LucideIcons.x), findsWidgets);
-    await tester.tap(find.byIcon(LucideIcons.x).first);
+    expect(find.text("BACK"), findsWidgets);
+    await tester.tap(find.text("BACK").first);
     await tester.pump(const Duration(milliseconds: 300));
 
     // 2. Open Campaign: World Select -> Level Select at small screen
