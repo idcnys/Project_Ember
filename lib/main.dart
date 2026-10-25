@@ -25,6 +25,9 @@ void main() async {
   // Immersive Fullscreen (hide status bars and navigation bar)
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
+  // Initialize AudioService so BGM and SFX mix concurrently without interruption
+  await AudioService.init();
+
   final vaultService = VaultService();
 
   runApp(EmberGameApp(vaultService: vaultService));

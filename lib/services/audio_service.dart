@@ -15,6 +15,26 @@ class AudioService {
   static bool isBgmEnabled = true;
   static String currentTrack = trackAmbient;
   static bool _bgmStarted = false;
+  static bool _initialized = false;
+
+  // Global AudioContext configured for concurrent SFX & BGM playback
+  // AndroidAudioFocus.none ensures SFX does not request exclusive audio focus,
+  // preventing Android OS from pausing/stopping background music.
+  static final AudioContext _audioContext = AudioContext(
+    android: const AudioContextAndroid(
+      isSpeakerphoneOn: false,
+      stayAwake: false,
+      contentType: AndroidContentType.music,
+      usageType: AndroidUsageType.game,
+      audioFocus: AndroidAudioFocus.none,
+    ),
+    iOS: AudioContextIOS(
+      category: AVAudioSessionCategory.playback,
+      options: const {
+        AVAudioSessionOptions.mixWithOthers,
+      },
+    ),
+  );
 
   // Dedicated players so rapid sounds (clicks, swipes, alerts, launches) don't violently clobber each other
   static final AudioPlayer _clickPlayer = AudioPlayer();
@@ -24,8 +44,52 @@ class AudioService {
   static final AudioPlayer _zoomPlayer = AudioPlayer();
   static final AudioPlayer _bgmPlayer = AudioPlayer();
 
+  /// Initialize global audio engine & player contexts so BGM and SFX
+  /// mix seamlessly without audio focus conflicts.
+  static Future<void> init() async {
+    if (_initialized) return;
+    _initialized = true;
+    try {
+      await AudioPlayer.global.setAudioContext(_audioContext);
+      await Future.wait([
+        _bgmPlayer.setAudioContext(_audioContext),
+        _clickPlayer.setAudioContext(_audioContext),
+        _swipePlayer.setAudioContext(_audioContext),
+        _sfxPlayer.setAudioContext(_audioContext),
+        _launchPlayer.setAudioContext(_audioContext),
+        _zoomPlayer.setAudioContext(_audioContext),
+      ]);
+
+      // Guard against unexpected Android focus drops or background pause
+      _bgmPlayer.onPlayerStateChanged.listen((state) {
+        if (state == PlayerState.paused &&
+            _bgmStarted &&
+            isBgmEnabled &&
+            !isMuted) {
+          _bgmPlayer.resume();
+        }
+      });
+
+      // Loop insurance: re-trigger on completion if still active
+      _bgmPlayer.onPlayerComplete.listen((_) {
+        if (_bgmStarted && isBgmEnabled && !isMuted) {
+          _bgmPlayer.play(AssetSource('sound/$currentTrack'));
+        }
+      });
+    } catch (_) {
+      // Gracefully silent in environments without audio device / tests
+    }
+  }
+
+  static Future<void> _ensureInitialized() async {
+    if (!_initialized) {
+      await init();
+    }
+  }
+
   /// Start ambient background music in loop with 40% volume by default
   static Future<void> startBgm({String? track}) async {
+    await _ensureInitialized();
     if (track != null && track.isNotEmpty) {
       currentTrack = track;
     }
@@ -47,6 +111,7 @@ class AudioService {
 
   /// Switch the active BGM track dynamically
   static Future<void> setBgmTrack(String track) async {
+    await _ensureInitialized();
     currentTrack = track;
     if (isBgmEnabled && !isMuted) {
       try {
@@ -66,8 +131,8 @@ class AudioService {
     isBgmEnabled = enabled;
     try {
       if (!isBgmEnabled || isMuted) {
-        await _bgmPlayer.stop();
         _bgmStarted = false;
+        await _bgmPlayer.stop();
       } else {
         await startBgm();
       }
@@ -76,9 +141,9 @@ class AudioService {
 
   /// Stop BGM
   static void stopBgm() {
+    _bgmStarted = false;
     try {
       _bgmPlayer.stop();
-      _bgmStarted = false;
     } catch (_) {}
   }
 
@@ -117,6 +182,7 @@ class AudioService {
   static Future<void> _safePlay(AudioPlayer player, String soundFile) async {
     if (isMuted) return;
     try {
+      await _ensureInitialized();
       await player.stop();
       await player.setVolume(sfxVolume);
       await player.play(

@@ -50,6 +50,7 @@ void main() {
     });
 
     test('AudioService default volumes (50% SFX, 40% BGM) and playback APIs', () async {
+      await AudioService.init();
       expect(AudioService.sfxVolume, 0.5);
       expect(AudioService.bgmVolume, 0.4);
       expect(AudioService.isBgmEnabled, isTrue);

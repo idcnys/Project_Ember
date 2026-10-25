@@ -89,12 +89,12 @@ class _MainMenuScreenState extends State<MainMenuScreen>
             ),
           ),
 
-          // Authentic Sci-Fi Facility Command Backdrop
+          // Authentic Home Screen Sci-Fi Backdrop
           Positioned.fill(
             child: Opacity(
-              opacity: 0.15,
+              opacity: 0.42,
               child: Image.asset(
-                'assets/scifi/rooms/command_room.png',
+                'assets/images/home_bg.jpg',
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.medium,
               ),
