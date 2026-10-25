@@ -36,7 +36,6 @@ void main() {
           home: Scaffold(
             body: MainMenuScreen(
               vault: vault,
-              onStartGame: () {},
               onOpenWorldSelect: () {},
               onOpenSpaceMissions: () {},
               onOpenModelMuseum: () {

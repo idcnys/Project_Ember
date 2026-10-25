@@ -13,7 +13,6 @@ import '../dialogs/solar_system_map_dialog.dart';
 
 class MainMenuScreen extends StatefulWidget {
   final VaultService vault;
-  final VoidCallback onStartGame;
   final VoidCallback onOpenWorldSelect;
   final VoidCallback onOpenSpaceMissions;
   final VoidCallback? onOpenModelMuseum;
@@ -23,7 +22,6 @@ class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({
     super.key,
     required this.vault,
-    required this.onStartGame,
     required this.onOpenWorldSelect,
     required this.onOpenSpaceMissions,
     this.onOpenModelMuseum,

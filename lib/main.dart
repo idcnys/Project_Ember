@@ -7,7 +7,6 @@ import 'theme/notion_theme.dart';
 import 'screens/main_menu_screen.dart';
 import 'screens/world_select_screen.dart';
 import 'screens/level_select_screen.dart';
-import 'game_2d/exploration_game.dart';
 import 'space/space_mission_view.dart';
 import 'dialogs/ember_onboarding_dialog.dart';
 import 'screens/model_museum_screen.dart';
@@ -76,7 +75,6 @@ enum GameState {
   mainMenu,
   worldSelect,
   levelSelect,
-  exploration2D,
   spaceMission3D,
   modelMuseum,
 }
@@ -181,15 +179,6 @@ class _GameRootScreenState extends State<GameRootScreen> {
     });
   }
 
-  void _switchToExploration() {
-    AudioService.playSuccess();
-    setState(() {
-      _selectedLevel = null;
-      _isFromModelMuseum = false;
-      _gameState = GameState.exploration2D;
-    });
-  }
-
   void _switchToSpaceMission() {
     AudioService.playSuccess();
     setState(() {
@@ -255,7 +244,6 @@ class _GameRootScreenState extends State<GameRootScreen> {
         return MainMenuScreen(
           key: const ValueKey('main_menu_screen'),
           vault: widget.vault,
-          onStartGame: _switchToExploration,
           onOpenWorldSelect: _switchToWorldSelect,
           onOpenSpaceMissions: _switchToSpaceMission,
           onOpenModelMuseum: _switchToModelMuseum,
@@ -287,13 +275,6 @@ class _GameRootScreenState extends State<GameRootScreen> {
           world: world,
           onLaunchLevel: _launchLevel,
           onReturnToWorldSelect: _switchToWorldSelect,
-        );
-
-      case GameState.exploration2D:
-        return ExplorationGameWidget(
-          key: const ValueKey('2d_exploration_screen'),
-          onLaunchMission: _switchToSpaceMission,
-          onReturnToMenu: _switchToMainMenu,
         );
 
       case GameState.spaceMission3D:

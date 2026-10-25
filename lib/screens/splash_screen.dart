@@ -172,8 +172,10 @@ class _SplashScreenState extends State<SplashScreen>
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                     child: FadeTransition(
                       opacity: _fadeAnimation,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           // App Logo
                           ScaleTransition(
@@ -369,6 +371,7 @@ class _SplashScreenState extends State<SplashScreen>
                             ),
                           ),
                         ],
+                      ),
                       ),
                     ),
                   ),
