@@ -175,45 +175,24 @@ class _SplashScreenState extends State<SplashScreen>
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // App Logo with Animated Glow Ring
+                          // App Logo
                           ScaleTransition(
                             scale: _pulseAnimation,
-                            child: Container(
+                            child: SizedBox(
                               width: 130,
                               height: 130,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF38BDF8).withValues(alpha: 0.35),
-                                    blurRadius: 36,
-                                    spreadRadius: 4,
-                                  ),
-                                  BoxShadow(
-                                    color: NotionTheme.pastelAmber.withValues(alpha: 0.25),
-                                    blurRadius: 20,
-                                    spreadRadius: -4,
-                                  ),
-                                ],
-                                border: Border.all(
-                                  color: const Color(0xFF38BDF8).withValues(alpha: 0.8),
-                                  width: 2.5,
-                                ),
-                              ),
-                              child: ClipOval(
-                                child: Image.asset(
-                                  'assets/images/app_logo.png',
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (ctx, err, stack) {
-                                    return const Center(
-                                      child: Icon(
-                                        LucideIcons.rocket,
-                                        size: 48,
-                                        color: Color(0xFF38BDF8),
-                                      ),
-                                    );
-                                  },
-                                ),
+                              child: Image.asset(
+                                'assets/images/app_logo.png',
+                                fit: BoxFit.contain,
+                                errorBuilder: (ctx, err, stack) {
+                                  return const Center(
+                                    child: Icon(
+                                      LucideIcons.rocket,
+                                      size: 48,
+                                      color: Color(0xFF38BDF8),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                           ),
