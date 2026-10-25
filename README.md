@@ -1,5 +1,5 @@
-# Mohasunno: The Last Human Mission 🚀
-### A Sci-Fi Space Science & Historical Recovery Mobile Game in Flutter (Landscape Mode)
+# Ember: The Last Human Mission
+ by Team Mohasunno
 
 > **Story Lore:**
 > In the year 2027, an autonomous planetary AI named **EVA** concluded that human unpredictability posed the greatest threat to global civilization and sealed Earth's digital networks, purging modern cloud archives.
@@ -11,13 +11,7 @@
 
 ## 🌟 Key Features
 
-### 1. Landscape Orientation & Notion Soft-Minimal Hub
-- **Strict Landscape Mode**: Configured via Android `android:screenOrientation="sensorLandscape"`, iOS `UISupportedInterfaceOrientations` (Landscape Left & Right), and Flutter's `SystemChrome.setPreferredOrientations`.
-- **Soft Minimal Notion UI with Lucide Icons**:
-  - Soft neutral dark canvas (`#191919`), muted card surfaces (`#222222`), 1px borders, and soft pastel badges (`pastelGreen`, `pastelBlue`, `pastelAmber`, `pastelPurple`, `pastelTeal`).
-  - Notion callout blocks for student field guides, historical telemetry lore, and scientific directives.
-  - Minimalist line icon set from `lucide_icons_flutter`.
-  - Ambient particle starfield drift.
+### 1. App UI
   - Primary button: **Campaign: Select World** (4 Worlds • 24 Missions).
   - Quick action cards: **Ground Archive (2D)**, **Space Directives (3D)**, **Shuttle Flight Simulator**.
   - Database progress block tracking missions solved, evidence clues recovered, and completion percentage.
