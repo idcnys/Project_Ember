@@ -1,12 +1,12 @@
 {
-    "name": "mohasunno",
-    "short_name": "mohasunno",
+    "name": "Ember: The Space Science Investigation",
+    "short_name": "Ember",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#070B14",
+    "theme_color": "#070B14",
+    "description": "Pedagogical space detective game powered by authentic NASA 3D hardware.",
+    "orientation": "landscape",
     "prefer_related_applications": false,
     "icons": [
         {
