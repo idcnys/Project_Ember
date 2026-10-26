@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'models/campaign_data.dart';
@@ -27,12 +29,27 @@ void main() async {
   // Initialize AudioService so BGM and SFX mix concurrently without interruption
   await AudioService.init();
 
+  // Pre-cache the 3D viewer runtime (1MB+ JS + HTML template) so the model
+  // museum / mission viewer opens instantly instead of reading assets cold.
+  if (!kIsWeb) {
+    unawaited(_preCacheModelViewerRuntime());
+  }
+
   final vaultService = VaultService();
 
   runApp(EmberGameApp(vaultService: vaultService));
 }
 
 typedef MohasunnoGameApp = EmberGameApp;
+
+Future<void> _preCacheModelViewerRuntime() async {
+  try {
+    await rootBundle.loadString('packages/model_viewer_plus/assets/template.html');
+    await rootBundle.load('packages/model_viewer_plus/assets/model-viewer.min.js');
+  } catch (e) {
+    debugPrint('Model viewer pre-cache failed: $e');
+  }
+}
 
 class EmberGameApp extends StatelessWidget {
   final VaultService vaultService;
@@ -154,6 +171,9 @@ class _GameRootScreenState extends State<GameRootScreen> {
   void _launchLevelFromMuseum(CampaignLevel level) {
     widget.vault.setActiveLevel(level.id);
     AudioService.playSuccess();
+    if (!kIsWeb && level.has3dModel) {
+      unawaited(rootBundle.load(level.glbModelPath).catchError((Object _) => ByteData(0)));
+    }
     setState(() {
       _selectedLevel = level;
       _selectedWorld = widget.vault.worlds.firstWhere(

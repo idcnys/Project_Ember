@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 
@@ -44,7 +45,8 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
   // 3D Model Viewer Controls
   bool _autoRotate = true;
   bool _isDossierOpen = true;
-  Key _modelViewerKey = UniqueKey();
+  // Held as dynamic: webview_flutter is only a transitive dependency of model_viewer_plus
+  dynamic _modelWebViewController;
   final TransformationController _imageTransformController = TransformationController();
 
   // Desktop Fallback 3D Angles
@@ -127,6 +129,14 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
     }
 
     _ticker = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat();
+
+    // Warm the asset cache so the viewer's local proxy serves the GLB instantly
+    if (_supportsNativeModelViewer) {
+      final glbPath = widget.campaignLevel?.glbModelPath;
+      if (glbPath != null) {
+        rootBundle.load(glbPath).catchError((_) => ByteData(0));
+      }
+    }
 
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_timerSeconds > 0 && mounted) {
@@ -280,10 +290,17 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
 
   void _resetCamera() {
     AudioService.playZoom();
+    // Reset the live WebView camera instead of rebuilding the ModelViewer
+    // widget, which would tear down the WebView and reload the model.
+    if (_supportsNativeModelViewer && _modelWebViewController != null) {
+      _modelWebViewController.runJavaScript(
+        "const v = document.querySelector('model-viewer');"
+        "if (v && v.resetCameraAtRoot) v.resetCameraAtRoot();",
+      );
+    }
     setState(() {
       _rotX = 0.3;
       _rotY = 0.5;
-      _modelViewerKey = UniqueKey();
     });
   }
 
@@ -363,7 +380,7 @@ class _SpaceMissionViewState extends State<SpaceMissionView>
                   ? _buildArchivalImageViewer(hardwareImage, hardware)
                   : (_supportsNativeModelViewer
                       ? ModelViewer(
-                          key: _modelViewerKey,
+                          onWebViewCreated: (controller) => _modelWebViewController = controller,
                           src: glbPath,
                           alt: "$hardware 3D Hardware Model",
                           ar: false,
